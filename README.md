@@ -1,4 +1,4 @@
-#  REMIND — A Personal Feedback Loop to Prevent Repeated Mistakes
+#  REMIND : A Personal Feedback Loop to Prevent Repeated Mistakes
 
 REMIND is a personal decision-learning tool that helps users avoid repeating past mistakes
 by turning moments of regret into actionable signals. Users log situations they wish had
