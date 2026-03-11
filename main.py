@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from app.embeddings import get_embedding
 from app.patterns import detect_pattern
+from app.insights import get_insights as compute_insights
 
 app = FastAPI()
 
@@ -42,6 +43,5 @@ def get_patterns(data: RegretEntry):
 
 @app.post("/insights")
 def get_insights(data: RegretEntry):
-    return {"user_id": data.user_id, "status": "insights coming soon"}
-
-
+    result = compute_insights(data.user_id)
+    return result
