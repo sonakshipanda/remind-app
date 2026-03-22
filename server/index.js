@@ -1,23 +1,30 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const entryRoutes = require('./routes/entryRoutes');
 const nudgeRoutes = require('./routes/nudgeRoutes');
+const analyzeRoutes = require('./routes/analyzeRoutes');
 
 dotenv.config();
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Connected!'))
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.log(err);
+    process.exit(1);
+  });
 
 app.use('/api/auth', authRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/nudges', nudgeRoutes);
+app.use('/api/analyze', analyzeRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'REMIND Backend is running!' });

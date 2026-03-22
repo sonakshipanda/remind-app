@@ -40,9 +40,11 @@ const getEntry = async (req, res) => {
 
 const updateEntry = async (req, res) => {
   try {
+    const { description, trigger, emotionalState, desiredAction, category } = req.body;
+
     const entry = await Entry.findOneAndUpdate(
       { _id: req.params.id, user: req.user.userId },
-      req.body,
+      { description, trigger, emotionalState, desiredAction, category },
       { new: true }
     );
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
