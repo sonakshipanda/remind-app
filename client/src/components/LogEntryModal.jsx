@@ -27,6 +27,20 @@ const TRIGGERS = [
 
 const EMOTION_TAGS = [
   "select a tag",
+  "Tired / Exhausted",
+  "Frustrated",
+  "Anxious / Stressed",
+  "Angry",
+  "Sad / Low Mood",
+  "Embarrassed",
+  "Excited / Impulsive",
+  "Lonely",
+  "Overwhelmed",
+  "Insecure",
+];
+
+const CATEGORIES = [
+  "select a category",
   "communication",
   "work & productivity",
   "relationships",
@@ -82,11 +96,11 @@ export default function LogEntryModal({ onClose, onSubmit }) {
   const [wishDidDifferently, setWishDidDifferently] = useState("");
   const [trigger, setTrigger] = useState("select a trigger");
   const [emotionTag, setEmotionTag] = useState("select a tag");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("select a category");
   const [openDropdown, setOpenDropdown] = useState(null);
   const [errors, setErrors] = useState({});
 
-  const canSubmit = description.trim() && trigger !== "select a trigger" && emotionTag !== "select a tag";
+  const canSubmit = description.trim() && trigger !== "select a trigger" && emotionTag !== "select a tag" && category !== "select a category";
 
   function handleSubmit() {
     if (!canSubmit) {
@@ -172,12 +186,12 @@ export default function LogEntryModal({ onClose, onSubmit }) {
             {/* Category */}
             <div className="flex flex-col gap-1">
               <label className="font-mono text-xs tracking-widest uppercase text-[#4A4A4A]">Category:</label>
-              <input
-                type="text"
-                placeholder="e.g. health, finance..."
+              <Dropdown
+                options={CATEGORIES}
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-3 border border-[#E0E0E0] rounded-xl font-sans text-sm bg-[#F2EFE9] focus:outline-none focus:border-[#BBD4CE] transition-colors"
+                onChange={setCategory}
+                isOpen={openDropdown === "category"}
+                onToggle={() => setOpenDropdown(openDropdown === "category" ? null : "category")}
               />
             </div>
 

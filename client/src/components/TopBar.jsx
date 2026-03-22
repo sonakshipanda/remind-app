@@ -1,4 +1,4 @@
-export default function TopBar({ onLog, user, onLogout }) {
+export default function TopBar({ user, onLogout }) {
   return (
     <header className="h-12 bg-[#456E91] flex items-center px-6 gap-3">
       <div className="flex-1" />

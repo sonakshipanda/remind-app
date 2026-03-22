@@ -8,8 +8,8 @@ export default {
     extend: {
       colors: {
         primary: "#2E2E2E",
-        sidebar: "#456E91",
-        topbar: "#264E70",
+        topbar: "#456E91",
+        sidebar: "#264E70",
         accent: "#BBD4CE",
         surface: "#F2EFE9",
         card: "#FFFCF7",
