@@ -3,42 +3,75 @@ import { formatDate, formatTime } from "../utils/formatDate";
 
 const FILTER_OPTIONS = [
   "All Tags",
-  "communication",
-  "work & productivity",
-  "relationships",
-  "conflicts & arguments",
-  "social media",
-  "health & self-care",
-  "academic",
-  "decisions & choices",
-  "reactions & responses",
-  "finance",
+  "tired / exhausted",
+  "frustrated",
+  "anxious / stressed",
+  "angry",
+  "sad / low mood",
+  "embarrassed",
+  "excited / impulsive",
+  "lonely",
+  "overwhelmed",
+  "insecure",
+  "under pressure / deadline",
+  "after an argument",
+  "late at night",
+  "under the influence",
+  "in public / social setting",
+  "reacting to someone else",
+  "on my phone / online",
+  "first thing in the morning",
+  "after receiving bad news",
+  "bored",
+  "sleep deprived",
 ];
 
 const ALL_TAGS = [
-  "communication",
-  "work & productivity",
-  "relationships",
-  "conflicts & arguments",
-  "social media",
-  "health & self-care",
-  "finance",
-  "academic",
-  "decisions & choices",
-  "reactions & responses",
+  "tired / exhausted",
+  "frustrated",
+  "anxious / stressed",
+  "angry",
+  "sad / low mood",
+  "embarrassed",
+  "excited / impulsive",
+  "lonely",
+  "overwhelmed",
+  "insecure",
+  "under pressure / deadline",
+  "after an argument",
+  "late at night",
+  "under the influence",
+  "in public / social setting",
+  "reacting to someone else",
+  "on my phone / online",
+  "first thing in the morning",
+  "after receiving bad news",
+  "bored",
+  "sleep deprived",
 ];
 
 const TAG_SHORT = {
-  "communication": "comm.",
-  "work & productivity": "work & prod.",
-  "relationships": "relation.",
-  "conflicts & arguments": "conflicts & arg.",
-  "social media": "social media",
-  "health & self-care": "health & self-care",
-  "finance": "finance",
-  "academic": "academic",
-  "decisions & choices": "decisions & choices",
-  "reactions & responses": "reactions & resp.",
+  "tired / exhausted": "tired",
+  "frustrated": "frustrated",
+  "anxious / stressed": "anxious",
+  "angry": "angry",
+  "sad / low mood": "sad",
+  "embarrassed": "embarrassed",
+  "excited / impulsive": "excited",
+  "lonely": "lonely",
+  "overwhelmed": "overwhelmed",
+  "insecure": "insecure",
+  "under pressure / deadline": "pressure",
+  "after an argument": "argument",
+  "late at night": "late night",
+  "under the influence": "influenced",
+  "in public / social setting": "public",
+  "reacting to someone else": "reacting",
+  "on my phone / online": "online",
+  "first thing in the morning": "morning",
+  "after receiving bad news": "bad news",
+  "bored": "bored",
+  "sleep deprived": "sleep dep.",
 };
 
 export default function Insights({ entries, onLog }) {
@@ -59,14 +92,14 @@ export default function Insights({ entries, onLog }) {
   const tagCounts = ALL_TAGS.map((tag) => ({
     tag,
     short: TAG_SHORT[tag],
-    count: entries.filter((e) => e.emotionTag === tag).length,
+    count: entries.filter((e) => e.trigger === tag).length,
   }));
   const maxCount = Math.max(...tagCounts.map((t) => t.count), 1);
 
   // Filtered entries
   const filteredEntries = filter === "All Tags"
     ? entries
-    : entries.filter((e) => e.emotionTag === filter);
+    : entries.filter((e) => e.trigger === filter);
 
   // Group by date
   const grouped = filteredEntries.reduce((acc, e) => {
@@ -107,7 +140,7 @@ export default function Insights({ entries, onLog }) {
                 {filter === "All Tags" ? (
                   <span className="text-[#4A4A4A]">Filter</span>
                 ) : (
-                  <span className="bg-[#F2EFE9] border border-[#E0E0E0] text-[#4A4A4A] px-2.5 py-0.5 rounded-full text-xs">{filter}</span>
+                  <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs">{filter}</span>
                 )}
                 <span className="text-xs text-[#4A4A4A]">{filterOpen ? "▲" : "▼"}</span>
               </div>
@@ -141,9 +174,9 @@ export default function Insights({ entries, onLog }) {
                       {e.note && <p className="text-xs text-[#4A4A4A] mt-0.5">{e.note}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {e.emotionTag && (
-                        <span className="bg-[#F2EFE9] border border-[#E0E0E0] text-[#4A4A4A] px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">
-                          {e.emotionTag}
+                      {e.trigger && (
+                        <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">                          
+                        {e.trigger}
                         </span>
                       )}
                       <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts)}</span>
@@ -190,7 +223,7 @@ export default function Insights({ entries, onLog }) {
             </div>
           ))}
         </div>
-        <p className="text-center text-xs text-[#4A4A4A] mt-2 tracking-wide">Emotional tags</p>
+        <p className="text-center text-xs text-[#4A4A4A] mt-2 tracking-wide">Triggers</p>
       </div>
     </div>
   );
