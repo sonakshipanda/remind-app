@@ -1,10 +1,15 @@
-export default function TopBar({ user, onLogout }) {
+export default function TopBar({ user, onLogout, onLog }) {
   return (
     <header className="h-12 bg-[#456E91] flex items-center px-6 gap-3">
       <div className="flex-1" />
       <div className="flex items-center gap-2.5">
+        <button
+          onClick={onLog}
+          className="bg-[#2E2E2E] text-white text-[0.82rem] font-bold tracking-wide px-4 py-1.5 rounded-full border-none cursor-pointer hover:bg-[#444] transition-colors"
+        >
+          + Log Entry
+        </button>
         <button className="border-none text-white bg-transparent text-base cursor-pointer">⚙️</button>
-        
         <div
           onClick={onLogout}
           title={user?.email}

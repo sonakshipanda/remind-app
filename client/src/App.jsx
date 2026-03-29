@@ -1,24 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthPage from "./pages/AuthPage";
-import Sidebar from "./components/Sidebar";
-import TopBar from "./components/TopBar";
-import LogEntryModal from "./components/LogEntryModal";
 import Dashboard from "./pages/Dashboard";
 import AllEntries from "./pages/AllEntries";
 import Insights from "./pages/Insights";
 import NudgeManager from "./pages/NudgeManager";
-import "./index.css";
-import "./styles.css";
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
+import LogEntryModal from "./components/LogEntryModal";
+import Sidebar from "./components/Sidebar";
+import TopBar from "./components/TopBar";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
-  const [logOpen, setLogOpen] = useState(false);
-  const [entries, setEntries] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [pendingNudge, setPendingNudge] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [authLoading, setAuthLoading] = useState(true);
   const [streak, setStreak] = useState(() =>
     parseInt(localStorage.getItem("remind_streak") || "0")
   );
@@ -26,10 +22,34 @@ export default function App() {
     localStorage.getItem("remind_lastLogDate") || null
   );
 
-  function handleLog(entry) {
-    const newEntry = { ...entry, id: Date.now(), ts: new Date() };
-    setEntries((prev) => [newEntry, ...prev]);
-    const today = todayStr();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const savedName = localStorage.getItem("userName");
+    const savedEmail = localStorage.getItem("userEmail");
+    if (token && savedName) {
+      setUser({ name: savedName, email: savedEmail });
+    }
+    setAuthLoading(false);
+  }, []);
+
+  function handleAuth(userData) {
+    setUser(userData);
+    localStorage.setItem("userName", userData.name);
+    localStorage.setItem("userEmail", userData.email);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("remind_streak");
+    localStorage.removeItem("remind_lastLogDate");
+    setUser(null);
+    setPage("dashboard");
+  }
+
+  function handleEntryLogged(newEntry, nudge) {
+    const today = new Date().toISOString().slice(0, 10);
     if (lastLogDate !== today) {
       const newStreak = streak + 1;
       setStreak(newStreak);
@@ -37,58 +57,31 @@ export default function App() {
       localStorage.setItem("remind_streak", newStreak);
       localStorage.setItem("remind_lastLogDate", today);
     }
-    setLogOpen(false);
+    if (nudge) setPendingNudge(nudge);
+    setRefreshKey((k) => k + 1);
+    setPage("dashboard");
   }
 
-  function handleLogout() {
-    setUser(null);
-    setEntries([]);
-    setStreak(0);
-    setLastLogDate(null);
-    localStorage.removeItem("remind_streak");
-    localStorage.removeItem("remind_lastLogDate");
-  }
-
-  if (!user) return <AuthPage onAuth={setUser} />;
-
-  const pages = {
-    dashboard: Dashboard,
-    allentries: AllEntries,
-    insights: Insights,
-    nudgemanager: NudgeManager,
-  };
-  const PageComponent = pages[page] || Dashboard;
+  if (authLoading) return null;
+  if (!user) return <AuthPage onAuth={handleAuth} />;
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar page={page} setPage={setPage} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar user={user} onLogout={handleLogout} />
-        <div className="flex justify-between items-center px-7 pt-6">
-          <h1 className="font-display text-3xl">
-            {page === "dashboard" ? `Hello, ${user?.name || "there"}!` :
-            page === "allentries" ? "Your Entries" :
-            page === "insights" ? "Insights" :
-            page === "nudgemanager" ? "Manage Your Nudges" : ""}
-          </h1>
-          <button
-            className="bg-[#2E2E2E] text-white text-[0.82rem] font-bold tracking-wide px-5 py-2.5 rounded-full flex items-center gap-2 border-none cursor-pointer hover:bg-[#444] hover:-translate-y-px active:translate-y-0 active:bg-[#1D1D1D] transition-all"
-            onClick={() => setLogOpen(true)}
-          >
-            + Log Entry
-          </button>
-        </div>
-        <div className="px-7 pt-3 pb-24 flex-1 overflow-y-auto">
-          <PageComponent
-            entries={entries}
-            streak={streak}
-            onLog={() => setLogOpen(true)}
-            setPage={setPage}
-            user={user}
-          />
-        </div>
+    <div className="min-h-screen bg-[#FFFCF7] flex">
+      <Sidebar page={page} setPage={setPage} onLogout={handleLogout} />
+      <div className="flex-1 flex flex-col">
+        <TopBar user={user} onLog={() => setShowModal(true)} onLogout={handleLogout} />
+        <main className="flex-1 p-6 overflow-auto">
+          {page === "dashboard" && (
+            <Dashboard streak={streak} refreshKey={refreshKey} onLog={() => setShowModal(true)} setPage={setPage} user={user} pendingNudge={pendingNudge} onNudgeDismissed={() => setPendingNudge(null)} />
+          )}
+          {page === "allentries" && <AllEntries onLog={() => setShowModal(true)} />}
+          {page === "insights" && <Insights onLog={() => setShowModal(true)} />}
+          {page === "nudgemanager" && <NudgeManager onLog={() => setShowModal(true)} />}
+        </main>
       </div>
-      {logOpen && <LogEntryModal onClose={() => setLogOpen(false)} onSubmit={handleLog} />}
+      {showModal && (
+        <LogEntryModal onClose={() => setShowModal(false)} onEntryLogged={handleEntryLogged} />
+      )}
     </div>
   );
 }
