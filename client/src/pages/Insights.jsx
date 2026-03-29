@@ -4,16 +4,8 @@ import api from "../utils/api";
 
 const FILTER_OPTIONS = [
   "All Tags",
-  "communication",
-  "work & productivity",
-  "relationships",
-  "conflicts & arguments",
-  "social media",
-  "health & self-care",
-  "academic",
-  "decisions & choices",
-  "reactions & responses",
-  "finance",
+  "tired", "frustrated", "anxious", "angry", "sad",
+  "overwhelmed", "embarrassed", "lonely", "insecure", "excited",
 ];
 
 const ALL_TAGS = [

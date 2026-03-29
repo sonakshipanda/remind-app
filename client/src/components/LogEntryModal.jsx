@@ -53,7 +53,7 @@ export default function LogEntryModal({ onClose, onEntryLogged }) {
     setError("");
   }
 
-  const canSubmit = form.description.trim() && form.category && form.trigger && !loading;
+  const canSubmit = form.description.trim() && form.category && form.trigger && form.emotionalState && !loading;
 
   async function handleSubmit() {
     if (!canSubmit) return;

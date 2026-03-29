@@ -67,7 +67,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FFFCF7] flex">
-      <Sidebar page={page} setPage={setPage} onLogout={handleLogout} />
+      <Sidebar page={page} setPage={setPage}/>
       <div className="flex-1 flex flex-col">
         <TopBar user={user} onLog={() => setShowModal(true)} onLogout={handleLogout} />
         <main className="flex-1 p-6 overflow-auto">

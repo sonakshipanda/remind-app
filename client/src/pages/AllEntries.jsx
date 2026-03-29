@@ -14,7 +14,7 @@ function groupByDate(entries) {
 export default function AllEntries({ onLog }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [similarEntry, setSimilarEntry] = useState(null);
+  //const [similarEntry, setSimilarEntry] = useState(null);
 
   useEffect(() => {
     async function fetchEntries() {
@@ -80,7 +80,7 @@ export default function AllEntries({ onLog }) {
                     <div className="flex flex-col items-center gap-1">
                       <div className="flex gap-1.5">
 <button onClick={() => handleDelete(e.id)} className="w-8 h-8 flex items-center justify-center border border-[#E0E0E0] rounded text-[#4A4A4A] bg-none cursor-pointer hover:bg-[#FAD7D3] text-sm">🗑</button>
-                        <button onClick={() => setSimilarEntry(e)} className="w-8 h-8 flex items-center justify-center border border-[#E0E0E0] rounded text-[#4A4A4A] bg-none cursor-pointer hover:bg-[#F2EFE9] text-sm">⋮</button>
+                        {/* <button onClick={() => setSimilarEntry(e)} className="w-8 h-8 flex items-center justify-center border border-[#E0E0E0] rounded text-[#4A4A4A] bg-none cursor-pointer hover:bg-[#F2EFE9] text-sm">⋮</button> */}
                       </div>
                       <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts)}</span>
                     </div>
