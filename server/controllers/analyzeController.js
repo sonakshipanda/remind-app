@@ -17,7 +17,7 @@ const analyzeEntry = async (req, res) => {
     const pastEntryTexts = pastEntries.map(e => e.description);
 
     // Call the AI engine
-    const aiResponse = await axios.post('http://localhost:8001/analyze', {
+    const aiResponse = await axios.post(`${process.env.ML_API_URL}/analyze`, {
       user_id: userId,
       entry: entry.description,
       past_entries: pastEntryTexts

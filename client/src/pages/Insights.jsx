@@ -4,26 +4,7 @@ import api from "../utils/api";
 
 const FILTER_OPTIONS = [
   "All Tags",
-  "tired", "frustrated", "anxious", "angry", "sad",
-  "overwhelmed", "embarrassed", "lonely", "insecure", "excited",
-];
 
-const ALL_TAGS = [
-  "tired", "frustrated", "anxious", "angry", "sad",
-  "overwhelmed", "embarrassed", "lonely", "insecure", "excited",
-];
-
-const TAG_SHORT = {
-  "tired": "tired",
-  "frustrated": "frustrated",
-  "anxious": "anxious",
-  "angry": "angry",
-  "sad": "sad",
-  "overwhelmed": "overwhelmed",
-  "embarrassed": "embarrassed",
-  "lonely": "lonely",
-  "insecure": "insecure",
-  "excited": "excited",
 };
 
 export default function Insights({ onLog }) {
@@ -70,14 +51,14 @@ export default function Insights({ onLog }) {
   const tagCounts = ALL_TAGS.map((tag) => ({
     tag,
     short: TAG_SHORT[tag],
-    count: entries.filter((e) => e.emotionTag === tag).length,
+    count: entries.filter((e) => e.trigger === tag).length,
   }));
   const maxCount = Math.max(...tagCounts.map((t) => t.count), 1);
 
   // Filtered entries
   const filteredEntries = filter === "All Tags"
     ? entries
-    : entries.filter((e) => e.emotionTag === filter);
+    : entries.filter((e) => e.trigger === filter);
 
   // Group by date
   const grouped = filteredEntries.reduce((acc, e) => {
@@ -118,7 +99,7 @@ export default function Insights({ onLog }) {
                 {filter === "All Tags" ? (
                   <span className="text-[#4A4A4A]">Filter</span>
                 ) : (
-                  <span className="bg-[#F2EFE9] border border-[#E0E0E0] text-[#4A4A4A] px-2.5 py-0.5 rounded-full text-xs">{filter}</span>
+                  <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs">{filter}</span>
                 )}
                 <span className="text-xs text-[#4A4A4A]">{filterOpen ? "▲" : "▼"}</span>
               </div>
@@ -201,7 +182,7 @@ export default function Insights({ onLog }) {
             </div>
           ))}
         </div>
-        <p className="text-center text-xs text-[#4A4A4A] mt-2 tracking-wide">Emotional tags</p>
+        <p className="text-center text-xs text-[#4A4A4A] mt-2 tracking-wide">Triggers</p>
       </div>
     </div>
   );
