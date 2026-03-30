@@ -1,43 +1,83 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { formatDate, formatTime } from "../utils/formatDate";
-import api from "../utils/api";
 
 const FILTER_OPTIONS = [
   "All Tags",
+  "tired / exhausted",
+  "frustrated",
+  "anxious / stressed",
+  "angry",
+  "sad / low mood",
+  "embarrassed",
+  "excited / impulsive",
+  "lonely",
+  "overwhelmed",
+  "insecure",
+  "under pressure / deadline",
+  "after an argument",
+  "late at night",
+  "under the influence",
+  "in public / social setting",
+  "reacting to someone else",
+  "on my phone / online",
+  "first thing in the morning",
+  "after receiving bad news",
+  "bored",
+  "sleep deprived",
+];
 
+const ALL_TAGS = [
+  "tired / exhausted",
+  "frustrated",
+  "anxious / stressed",
+  "angry",
+  "sad / low mood",
+  "embarrassed",
+  "excited / impulsive",
+  "lonely",
+  "overwhelmed",
+  "insecure",
+  "under pressure / deadline",
+  "after an argument",
+  "late at night",
+  "under the influence",
+  "in public / social setting",
+  "reacting to someone else",
+  "on my phone / online",
+  "first thing in the morning",
+  "after receiving bad news",
+  "bored",
+  "sleep deprived",
+];
+
+const TAG_SHORT = {
+  "tired / exhausted": "tired",
+  "frustrated": "frustrated",
+  "anxious / stressed": "anxious",
+  "angry": "angry",
+  "sad / low mood": "sad",
+  "embarrassed": "embarrassed",
+  "excited / impulsive": "excited",
+  "lonely": "lonely",
+  "overwhelmed": "overwhelmed",
+  "insecure": "insecure",
+  "under pressure / deadline": "pressure",
+  "after an argument": "argument",
+  "late at night": "late night",
+  "under the influence": "influenced",
+  "in public / social setting": "public",
+  "reacting to someone else": "reacting",
+  "on my phone / online": "online",
+  "first thing in the morning": "morning",
+  "after receiving bad news": "bad news",
+  "bored": "bored",
+  "sleep deprived": "sleep dep.",
 };
 
-export default function Insights({ onLog }) {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function Insights({ entries, onLog }) {
   const [filter, setFilter] = useState("All Tags");
   const [filterOpen, setFilterOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchEntries() {
-      try {
-        const res = await api.get("/entries");
-        const mapped = res.data.map((e) => ({
-          id: e._id,
-          habit: e.description,
-          note: e.desiredAction || "",
-          emotionTag: e.emotionalState || "",
-          trigger: e.trigger || "",
-          ts: e.createdAt,
-        }));
-        setEntries(mapped);
-      } catch (err) {
-        console.error("Insights fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchEntries();
-  }, []);
-
-  if (loading) return <div className="text-sm text-[#4A4A4A] py-6">Loading...</div>;
-
-  // Top triggers
   const triggerCounts = entries
     .map((e) => e.trigger)
     .filter(Boolean)
@@ -47,7 +87,6 @@ export default function Insights({ onLog }) {
     .slice(0, 5)
     .map(([t]) => t);
 
-  // Tag counts for bar chart
   const tagCounts = ALL_TAGS.map((tag) => ({
     tag,
     short: TAG_SHORT[tag],
@@ -55,12 +94,10 @@ export default function Insights({ onLog }) {
   }));
   const maxCount = Math.max(...tagCounts.map((t) => t.count), 1);
 
-  // Filtered entries
   const filteredEntries = filter === "All Tags"
     ? entries
     : entries.filter((e) => e.trigger === filter);
 
-  // Group by date
   const grouped = filteredEntries.reduce((acc, e) => {
     const d = formatDate(e.ts);
     if (!acc[d]) acc[d] = [];
@@ -81,15 +118,10 @@ export default function Insights({ onLog }) {
 
   return (
     <div>
-      {/* Top row: Entry History + Top Triggers */}
       <div className="grid grid-cols-[1fr_220px] gap-5 items-start mb-6">
-
-        {/* Entry History */}
         <div className="bg-[#F2EFE9] rounded-xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-sans text-xl">Entry History</h2>
-
-            {/* Filter dropdown */}
             <div className="relative w-44">
               <div
                 onClick={() => setFilterOpen((o) => !o)}
@@ -119,7 +151,6 @@ export default function Insights({ onLog }) {
               )}
             </div>
           </div>
-
           {Object.keys(grouped).length === 0 ? (
             <p className="text-sm text-[#4A4A4A]">No entries match this filter.</p>
           ) : (
@@ -133,10 +164,8 @@ export default function Insights({ onLog }) {
                       {e.note && <p className="text-xs text-[#4A4A4A] mt-0.5">{e.note}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {e.emotionTag && (
-                        <span className="bg-[#4A4A4A] border border-[#D0CCC4] text-[#BBD4CE] px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">
-                          {e.emotionTag}
-                        </span>
+                      {e.trigger && (
+                        <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">{e.trigger}</span>
                       )}
                       <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts)}</span>
                     </div>
@@ -146,8 +175,6 @@ export default function Insights({ onLog }) {
             ))
           )}
         </div>
-
-        {/* Top Triggers */}
         <div className="bg-[#F2EFE9] rounded-xl p-5 shadow-sm">
           <p className="font-mono text-xs tracking-widest uppercase text-[#4A4A4A] mb-3">Your Top Triggers:</p>
           {topTriggers.length === 0 ? (
@@ -157,15 +184,13 @@ export default function Insights({ onLog }) {
               {topTriggers.map((t, i) => (
                 <div key={t} className="flex items-center gap-2">
                   <span className="text-xs text-[#4A4A4A] w-4">{i + 1}.</span>
-                  <span className="bg-[#4A4A4A] border border-[#E0E0E0] text-[#BBD4CE] px-2.5 py-0.5 rounded-full text-xs">{t}</span>
+                  <span className="bg-[#4A4A4A] border border-[#E0E0E0] text-[#F2EFE9] px-2.5 py-0.5 rounded-full text-xs">{t}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
-
-      {/* Bar Chart */}
       <div className="bg-[#F2EFE9] rounded-xl p-5 shadow-sm">
         <h2 className="font-sans text-xl mb-5">Entries By Tag</h2>
         <div className="flex items-end gap-2 h-36 pb-1">
