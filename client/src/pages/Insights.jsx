@@ -1,82 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDate, formatTime } from "../utils/formatDate";
+import api from "../utils/api";
 
 const FILTER_OPTIONS = [
   "All Tags",
-  "tired / exhausted",
-  "frustrated",
-  "anxious / stressed",
-  "angry",
-  "sad / low mood",
-  "embarrassed",
-  "excited / impulsive",
-  "lonely",
-  "overwhelmed",
-  "insecure",
-  "under pressure / deadline",
-  "after an argument",
-  "late at night",
-  "under the influence",
-  "in public / social setting",
-  "reacting to someone else",
-  "on my phone / online",
-  "first thing in the morning",
-  "after receiving bad news",
-  "bored",
-  "sleep deprived",
-];
 
-const ALL_TAGS = [
-  "tired / exhausted",
-  "frustrated",
-  "anxious / stressed",
-  "angry",
-  "sad / low mood",
-  "embarrassed",
-  "excited / impulsive",
-  "lonely",
-  "overwhelmed",
-  "insecure",
-  "under pressure / deadline",
-  "after an argument",
-  "late at night",
-  "under the influence",
-  "in public / social setting",
-  "reacting to someone else",
-  "on my phone / online",
-  "first thing in the morning",
-  "after receiving bad news",
-  "bored",
-  "sleep deprived",
-];
-
-const TAG_SHORT = {
-  "tired / exhausted": "tired",
-  "frustrated": "frustrated",
-  "anxious / stressed": "anxious",
-  "angry": "angry",
-  "sad / low mood": "sad",
-  "embarrassed": "embarrassed",
-  "excited / impulsive": "excited",
-  "lonely": "lonely",
-  "overwhelmed": "overwhelmed",
-  "insecure": "insecure",
-  "under pressure / deadline": "pressure",
-  "after an argument": "argument",
-  "late at night": "late night",
-  "under the influence": "influenced",
-  "in public / social setting": "public",
-  "reacting to someone else": "reacting",
-  "on my phone / online": "online",
-  "first thing in the morning": "morning",
-  "after receiving bad news": "bad news",
-  "bored": "bored",
-  "sleep deprived": "sleep dep.",
 };
 
-export default function Insights({ entries, onLog }) {
+export default function Insights({ onLog }) {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All Tags");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  useEffect(() => {
+    async function fetchEntries() {
+      try {
+        const res = await api.get("/entries");
+        const mapped = res.data.map((e) => ({
+          id: e._id,
+          habit: e.description,
+          note: e.desiredAction || "",
+          emotionTag: e.emotionalState || "",
+          trigger: e.trigger || "",
+          ts: e.createdAt,
+        }));
+        setEntries(mapped);
+      } catch (err) {
+        console.error("Insights fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEntries();
+  }, []);
+
+  if (loading) return <div className="text-sm text-[#4A4A4A] py-6">Loading...</div>;
 
   // Top triggers
   const triggerCounts = entries
@@ -174,9 +133,9 @@ export default function Insights({ entries, onLog }) {
                       {e.note && <p className="text-xs text-[#4A4A4A] mt-0.5">{e.note}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {e.trigger && (
-                        <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">                          
-                        {e.trigger}
+                      {e.emotionTag && (
+                        <span className="bg-[#4A4A4A] border border-[#D0CCC4] text-[#BBD4CE] px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">
+                          {e.emotionTag}
                         </span>
                       )}
                       <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts)}</span>
@@ -198,7 +157,7 @@ export default function Insights({ entries, onLog }) {
               {topTriggers.map((t, i) => (
                 <div key={t} className="flex items-center gap-2">
                   <span className="text-xs text-[#4A4A4A] w-4">{i + 1}.</span>
-                  <span className="bg-[#4A4A4A] border border-[#E0E0E0] text-[#F2EFE9] px-2.5 py-0.5 rounded-full text-xs">{t}</span>
+                  <span className="bg-[#4A4A4A] border border-[#E0E0E0] text-[#BBD4CE] px-2.5 py-0.5 rounded-full text-xs">{t}</span>
                 </div>
               ))}
             </div>
