@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDate, formatTime } from "../utils/formatDate";
+import api from "../utils/api";
 
 const FILTER_OPTIONS = [
   "All Tags",
@@ -74,9 +75,14 @@ const TAG_SHORT = {
   "sleep deprived": "sleep dep.",
 };
 
-export default function Insights({ entries, onLog }) {
+export default function Insights({ onLog }) {
+  const [entries, setEntries] = useState([]);
   const [filter, setFilter] = useState("All Tags");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  useEffect(() => {
+    api.get("/entries").then((res) => setEntries(res.data)).catch(() => setEntries([]));
+  }, []);
 
   const triggerCounts = entries
     .map((e) => e.trigger)
@@ -158,16 +164,16 @@ export default function Insights({ entries, onLog }) {
               <div key={date}>
                 <p className="text-xs tracking-widest uppercase text-[#4A4A4A] mt-3 mb-1">{date}</p>
                 {dayEntries.map((e) => (
-                  <div key={e.id} className="flex justify-between items-start py-3 border-b border-black/6 last:border-b-0 gap-4">
+                  <div key={e._id} className="flex justify-between items-start py-3 border-b border-black/6 last:border-b-0 gap-4">
                     <div className="flex-1">
-                      <p className="text-sm text-[#1D1D1D]">{e.habit}</p>
-                      {e.note && <p className="text-xs text-[#4A4A4A] mt-0.5">{e.note}</p>}
+                      <p className="text-sm text-[#1D1D1D]">{e.description}</p>
+                      {e.alternative && <p className="text-xs text-[#4A4A4A] mt-0.5">{e.alternative}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       {e.trigger && (
                         <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">{e.trigger}</span>
                       )}
-                      <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts)}</span>
+                      <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts || e.createdAt)}</span>
                     </div>
                   </div>
                 ))}
