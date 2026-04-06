@@ -166,12 +166,10 @@ export default function Insights({ onLog }) {
                     <div
                       key={o}
                       onClick={() => { setFilter(o); setFilterOpen(false); }}
-                      className={`px-3.5 py-2.5 text-sm cursor-pointer border-b border-black/5 last:border-b-0 hover:bg-[#E8E4DC] transition-colors
-                        ${filter === o ? "bg-[#E8E4DC] font-medium" : ""}`}
-                    >
-                      {o === "All Tags" ? "All Tags" : (
-                        <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs">{o}</span>
-                      )}
+                      className={`px-3.5 py-2.5 text-sm cursor-pointer border-b border-black/5 last:border-b-0 hover: transition-colors
+                        ${filter === o ? " font-medium" : ""}`}
+                      >
+                      {o}
                     </div>
                   ))}
                 </div>
@@ -187,17 +185,14 @@ export default function Insights({ onLog }) {
                 <p className="text-xs tracking-widest uppercase text-[#4A4A4A] mb-2">{date}</p>
                 <div className="flex flex-col gap-2">
                   {items.map((e) => (
-                    <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex justify-between items-center gap-3">
+                    <div key={e.id} className=" rounded-xl px-4 py-3 flex justify-between items-center gap-3">
                       <div className="flex-1">
                         <p className="text-sm text-[#1D1D1D] font-medium">{e.habit}</p>
                         {e.note && <p className="text-xs text-[#4A4A4A] mt-0.5">{e.note}</p>}
                       </div>
                       <div className="flex items-center gap-2">
-                        {e.emotionTag && (
-                          <span className="bg-[#2E2E2E] text-white px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">{e.emotionTag}</span>
-                        )}
                         {e.trigger && (
-                          <span className="bg-[#E8E4DC] text-[#4A4A4A] px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">{e.trigger}</span>
+                          <span className="bg-[#4A4A4A] text-[#BBD4CE] px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">{e.trigger}</span>
                         )}
                         <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts)}</span>
                       </div>

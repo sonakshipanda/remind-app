@@ -71,7 +71,11 @@ export default function LogEntryModal({ onClose, onEntryLogged }) {
       let nudge = null;
       try {
         const analyzeRes = await api.post("/analyze", { entryId: newEntry._id });
-        nudge = analyzeRes.data.nudge?.nudge_triggered ? analyzeRes.data.nudge : null;
+        nudge = analyzeRes.data.nudge?.nudge_triggered ? {
+          ...analyzeRes.data.nudge,
+          category: form.category,
+          emotionTag: form.emotionalState,
+        } : null;
       } catch (analyzeErr) {
         console.warn("Analysis failed:", analyzeErr);
       }
