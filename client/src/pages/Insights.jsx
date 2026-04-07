@@ -114,7 +114,8 @@ export default function Insights({ onLog }) {
     tag,
     short: TAG_SHORT[tag],
     count: entries.filter((e) => norm(e.trigger) === norm(tag)).length,
-  }));
+  })).filter((t) => t.count > 0);
+
   const maxCount = Math.max(...tagCounts.map((t) => t.count), 1);
 
   const filteredEntries = filter === "All Tags"
