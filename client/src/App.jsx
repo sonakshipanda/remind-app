@@ -6,7 +6,6 @@ import Insights from "./pages/Insights";
 import NudgeManager from "./pages/NudgeManager";
 import LogEntryModal from "./components/LogEntryModal";
 import Sidebar from "./components/Sidebar";
-import TopBar from "./components/TopBar";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -67,20 +66,28 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FFFCF7] flex">
-      <Sidebar page={page} setPage={setPage}/>
-      <div className="flex-1 flex flex-col">
-        <TopBar user={user} onLog={() => setShowModal(true)} onLogout={handleLogout} />
-        <main className="flex-1 p-6 overflow-auto">
-          {page === "dashboard" && (
-            <Dashboard streak={streak} refreshKey={refreshKey} onLog={() => setShowModal(true)} setPage={setPage} user={user} pendingNudge={pendingNudge} onNudgeDismissed={() => setPendingNudge(null)} />
-          )}
-          {page === "allentries" && <AllEntries onLog={() => setShowModal(true)} />}
-          {page === "insights" && <Insights onLog={() => setShowModal(true)} />}
-          {page === "nudgemanager" && <NudgeManager onLog={() => setShowModal(true)} />}
-        </main>
-      </div>
+      <Sidebar page={page} setPage={setPage} onLogout={handleLogout} />
+      <main className="flex-1 overflow-auto">
+        {page === "dashboard" && (
+          <Dashboard
+            streak={streak}
+            refreshKey={refreshKey}
+            onLog={() => setShowModal(true)}
+            setPage={setPage}
+            user={user}
+            pendingNudge={pendingNudge}
+            onNudgeDismissed={() => setPendingNudge(null)}
+          />
+        )}
+        {page === "allentries" && <AllEntries onLog={() => setShowModal(true)} />}
+        {page === "insights" && <Insights onLog={() => setShowModal(true)} />}
+        {page === "nudgemanager" && <NudgeManager onLog={() => setShowModal(true)} />}
+      </main>
       {showModal && (
-        <LogEntryModal onClose={() => setShowModal(false)} onEntryLogged={handleEntryLogged} />
+        <LogEntryModal
+          onClose={() => setShowModal(false)}
+          onEntryLogged={handleEntryLogged}
+        />
       )}
     </div>
   );

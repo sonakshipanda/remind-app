@@ -1,250 +1,375 @@
 import { useState, useEffect } from "react";
-import { formatDate, formatTime } from "../utils/formatDate";
 import api from "../utils/api";
+import {
+  PieChart, Pie, Cell, Tooltip,
+  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend,
+} from "recharts";
 
-const FILTER_OPTIONS = [
-  "All Tags",
-  "Tired / Exhausted",
-  "Frustrated",
-  "Anxious / Stressed",
-  "Angry",
-  "Sad / Low Mood",
-  "Embarrassed",
-  "Excited / Impulsive",
-  "Lonely",
-  "Overwhelmed",
-  "Insecure",
-  "Under pressure / deadline",
-  "After an argument",
-  "Late at night",
-  "Under the influence",
-  "In public / social setting",
-  "Alone",
-  "Reacting to someone else",
-  "On my phone / online",
-  "First thing in the morning",
-  "After receiving bad news",
-];
-
-const ALL_TAGS = [
-  "Tired / Exhausted",
-  "Frustrated",
-  "Anxious / Stressed",
-  "Angry",
-  "Sad / Low Mood",
-  "Embarrassed",
-  "Excited / Impulsive",
-  "Lonely",
-  "Overwhelmed",
-  "Insecure",
-  "Under pressure / deadline",
-  "After an argument",
-  "Late at night",
-  "Under the influence",
-  "In public / social setting",
-  "Alone",
-  "Reacting to someone else",
-  "On my phone / online",
-  "First thing in the morning",
-  "After receiving bad news",
-];
-
-const TAG_SHORT = {
-  "Tired / Exhausted": "tired",
-  "Frustrated": "frustrated",
-  "Anxious / Stressed": "anxious",
-  "Angry": "angry",
-  "Sad / Low Mood": "sad",
-  "Embarrassed": "embarrassed",
-  "Excited / Impulsive": "excited",
-  "Lonely": "lonely",
-  "Overwhelmed": "overwhelmed",
-  "Insecure": "insecure",
-  "Under pressure / deadline": "pressure",
-  "After an argument": "argument",
-  "Late at night": "late night",
-  "Under the influence": "influenced",
-  "In public / social setting": "public",
-  "Alone": "alone",
-  "Reacting to someone else": "reacting",
-  "On my phone / online": "online",
-  "First thing in the morning": "morning",
-  "After receiving bad news": "bad news",
+const EMOTION_COLORS = {
+  tired:       "#4C756B",
+  frustrated:  "#4A6478",
+  anxious:     "#264E70",
+  angry:       "#C56C6E",
+  sad:         "#6B5555",
+  overwhelmed: "#4A5C5C",
+  embarrassed: "#6B5D6B",
+  lonely:      "#5D6B5D",
+  insecure:    "#6B6B5D",
+  excited:     "#556B68",
 };
+
+const RANGE_OPTIONS = ["week", "month", "all time"];
 
 export default function Insights({ onLog }) {
   const [entries, setEntries] = useState([]);
-  const [filter, setFilter] = useState("All Tags");
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [patterns, setPatterns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState("all time");
+  const [activeEmotion, setActiveEmotion] = useState(null);
 
   useEffect(() => {
-    api.get("/entries")
-      .then((res) => {
-        const mapped = res.data.map((e) => ({
+    async function fetchData() {
+      try {
+        const [entriesRes] = await Promise.all([
+          api.get("/entries"),
+          // patterns endpoint ready: api.get("/patterns")
+        ]);
+        const mapped = entriesRes.data.map((e) => ({
           id: e._id,
           habit: e.description,
-          note: e.desiredAction || "",
           emotionTag: e.emotionalState || "",
           trigger: e.trigger || "",
           ts: e.createdAt,
         }));
         setEntries(mapped);
-      })
-      .catch(() => setEntries([]))
-      .finally(() => setLoading(false));
+        // setPatterns(patternsRes.data);
+
+        // Placeholder patterns — remove when backend is ready
+        setPatterns([
+          {
+            id: "1",
+            title: "Procrastination loop",
+            description: "Social media scrolling then deadline panic has appeared 3 times this week. Each time it led to feeling overwhelmed.",
+            linkedEntries: [],
+            type: "pink",
+          },
+          {
+            id: "2",
+            title: "Late-night reactivity",
+            description: "Angry messages sent after 10 PM, regretted the next morning. 4 occurrences in the past 2 weeks.",
+            linkedEntries: [],
+            type: "teal",
+          },
+        ]);
+      } catch (err) {
+        console.error("Insights fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
   }, []);
 
-  const norm = (s) => (s || "").trim().toLowerCase();
+  // Range filter
+  const now = new Date();
+  const rangeFiltered = entries.filter((e) => {
+    if (range === "week") {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      return new Date(e.ts) >= start;
+    }
+    if (range === "month") {
+      const start = new Date(now);
+      start.setMonth(now.getMonth() - 1);
+      return new Date(e.ts) >= start;
+    }
+    return true;
+  });
 
-  const triggerCounts = entries
-    .map((e) => e.trigger)
-    .filter(Boolean)
-    .reduce((acc, t) => {
-      const key = ALL_TAGS.find((tag) => norm(tag) === norm(t)) || t;
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {});
+  // Emotion breakdown — top 4
+  const emotionCounts = {};
+  rangeFiltered.forEach((e) => {
+    if (e.emotionTag) emotionCounts[e.emotionTag] = (emotionCounts[e.emotionTag] || 0) + 1;
+  });
+  const topEmotions = Object.entries(emotionCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+  const totalEmotions = topEmotions.reduce((sum, [, c]) => sum + c, 0);
+
+  // Top triggers — top 4
+  const triggerCounts = {};
+  rangeFiltered.forEach((e) => {
+    if (e.trigger) triggerCounts[e.trigger] = (triggerCounts[e.trigger] || 0) + 1;
+  });
   const topTriggers = Object.entries(triggerCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([t]) => t);
+    .slice(0, 4);
+  const maxTrigger = topTriggers[0]?.[1] || 1;
 
-  const tagCounts = ALL_TAGS.map((tag) => ({
-    tag,
-    short: TAG_SHORT[tag],
-    count: entries.filter((e) => norm(e.trigger) === norm(tag)).length,
-  }));
-  const maxCount = Math.max(...tagCounts.map((t) => t.count), 1);
+  // Scatter plot data
+  const scatterByEmotion = {};
+  rangeFiltered.forEach((e) => {
+    const emotion = e.emotionTag?.toLowerCase() || "unknown";
+    if (!scatterByEmotion[emotion]) scatterByEmotion[emotion] = [];
+    const date = new Date(e.ts);
+    scatterByEmotion[emotion].push({
+      x: date.getTime(),
+      y: Math.floor(Math.random() * 9) + 1, // placeholder intensity — replace with backend field
+      label: e.habit,
+    });
+  });
 
-  const filteredEntries = filter === "All Tags"
-    ? entries
-    : entries.filter((e) => norm(e.trigger) === norm(filter) || norm(e.emotionTag) === norm(filter));
+  // Filter by emotion
+  const emotions = [...new Set(rangeFiltered.map((e) => e.emotionTag).filter(Boolean))];
+  const filteredForTable = activeEmotion
+    ? rangeFiltered.filter((e) => e.emotionTag === activeEmotion)
+    : rangeFiltered;
 
-  const grouped = filteredEntries.reduce((acc, e) => {
-    const d = formatDate(e.ts);
-    if (!acc[d]) acc[d] = [];
-    acc[d].push(e);
-    return acc;
-  }, {});
+  const formatXAxis = (tick) => {
+    const d = new Date(tick);
+    return `${d.toLocaleString("default", { month: "short" })} ${d.getDate()}`;
+  };
 
-  if (loading) return <div className="text-sm text-[#4A4A4A] py-6">Loading...</div>;
+  if (loading) return <div className="text-sm py-6 px-8" style={{ color: "#4A4A4A" }}>Loading...</div>;
 
   if (entries.length === 0) {
     return (
-      <div>
-        <div className="bg-[#F2EFE9] rounded-2xl p-8 font-semibold text-[#BBD4CE] text-lg leading-relaxed">
-          <p>No data to be shown.</p>
-          <p>Log an entry to get started!</p>
+      <div className="min-h-screen px-8 py-8" style={{ backgroundColor: "#FFFCF7" }}>
+        <h1 className="text-3xl font-bold mb-6" style={{ color: "#1D1D1D" }}>Insights</h1>
+        <div className="rounded-xl px-5 py-8 text-center" style={{ backgroundColor: "#F2EFE9" }}>
+          <p className="text-sm mb-1" style={{ color: "#4A4A4A" }}>No data to be shown.</p>
+          <button onClick={onLog} className="text-sm underline bg-transparent border-none cursor-pointer" style={{ color: "#4A4A4A" }}>
+            Log an entry to get started!
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-[1fr_220px] gap-5 items-start mb-6">
-        <div className="bg-[#F2EFE9] rounded-xl p-5 shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-sans text-xl">Entry History</h2>
-            <div className="relative w-44">
-              <div
-                onClick={() => setFilterOpen((o) => !o)}
-                className={`flex justify-between items-center px-3.5 py-2.5 border rounded-xl bg-[#F2EFE9] text-sm cursor-pointer select-none transition-all
-                  ${filterOpen ? "border-[#BBD4CE] rounded-b-none" : "border-[#E0E0E0] hover:border-[#aaa]"}`}
+    <div className="min-h-screen px-8 py-8" style={{ backgroundColor: "#FFFCF7" }}>
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold" style={{ color: "#1D1D1D" }}>Insights</h1>
+        <div className="flex items-center gap-1">
+          {RANGE_OPTIONS.map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className="px-3 py-1 rounded-full text-xs border-none cursor-pointer transition-all"
+              style={{
+                backgroundColor: range === r ? "#4A5C5C" : "#FFFCF7",
+                color: range === r ? "#F2EFE9" : "#4A4A4A",
+                border: range === r ? "none" : "1px solid #F2EFE9",
+              }}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Top row: Emotion Breakdown + Top Triggers */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+
+        {/* Emotion Breakdown */}
+        <div className="rounded-xl p-5" style={{ backgroundColor: "#F3EFE9" }}>
+          <p className="font-sans text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: "#2E2E2E" }}>
+            Emotion Breakdown
+          </p>
+          <div className="flex items-center gap-6">
+            <PieChart width={100} height={100}>
+              <Pie
+                data={topEmotions.map(([emotion, count]) => ({ name: emotion, value: count }))}
+                cx={45}
+                cy={45}
+                innerRadius={28}
+                outerRadius={45}
+                dataKey="value"
+                strokeWidth={0}
               >
-                {filter === "All Tags" ? (
-                  <span className="text-[#4A4A4A]">Filter</span>
-                ) : (
-                  <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs">{filter}</span>
-                )}
-                <span className="text-xs text-[#4A4A4A]">{filterOpen ? "▲" : "▼"}</span>
-              </div>
-              {filterOpen && (
-                <div className="absolute top-full left-0 right-0 bg-[#F2EFE9] border border-[#BBD4CE] border-t-0 rounded-b-xl max-h-52 overflow-y-auto z-50 shadow-md">
-                  {FILTER_OPTIONS.map((o) => (
-                    <div
-                      key={o}
-                      onClick={() => { setFilter(o); setFilterOpen(false); }}
-                      className={`px-3.5 py-2.5 text-sm cursor-pointer border-b border-black/5 last:border-b-0 hover:bg-[#E8E4DC] transition-colors
-                        ${filter === o ? "bg-[#E8E4DC] font-medium" : ""}`}
-                    >
-                      {o === "All Tags" ? "All Tags" : (
-                        <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs">{o}</span>
-                      )}
-                    </div>
-                  ))}
+                {topEmotions.map(([emotion]) => (
+                  <Cell key={emotion} fill={EMOTION_COLORS[emotion.toLowerCase()] || "#4A5C5C"} />
+                ))}
+              </Pie>
+              <text x={50} y={45} textAnchor="middle" dominantBaseline="middle" fontSize={13} fontWeight="bold" fill="#1D1D1D">
+                {totalEmotions}
+              </text>
+              <text x={50} y={58} textAnchor="middle" dominantBaseline="middle" fontSize={7} fill="#4A4A4A">
+                entries
+              </text>
+            </PieChart>
+            <div className="flex flex-col gap-1.5">
+              {topEmotions.map(([emotion, count]) => (
+                <div key={emotion} className="flex items-center gap-2">
+                  <div className="rounded-full shrink-0" style={{ width: "8px", height: "8px", backgroundColor: EMOTION_COLORS[emotion.toLowerCase()] || "#4A5C5C" }} />
+                  <span className="text-xs capitalize" style={{ color: "#4A4A4A" }}>
+                    {emotion} ({count})
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
           </div>
+        </div>
 
-          {filteredEntries.length === 0 ? (
-            <p className="text-sm text-[#4A4A4A] py-4">No entries match this filter.</p>
+        {/* Top Triggers */}
+        <div className="rounded-xl p-5" style={{ backgroundColor: "#F3EFE9" }}>
+          <p className="font-sans text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: "#2E2E2E" }}>
+            Top Triggers
+          </p>
+          {topTriggers.length === 0 ? (
+            <p className="text-sm" style={{ color: "#4A4A4A" }}>Not enough data yet.</p>
           ) : (
-            Object.entries(grouped).map(([date, items]) => (
-              <div key={date} className="mb-5">
-                <p className="text-xs tracking-widest uppercase text-[#4A4A4A] mb-2">{date}</p>
-                <div className="flex flex-col gap-2">
-                  {items.map((e) => (
-                    <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex justify-between items-center gap-3">
-                      <div className="flex-1">
-                        <p className="text-sm text-[#1D1D1D] font-medium">{e.habit}</p>
-                        {e.note && <p className="text-xs text-[#4A4A4A] mt-0.5">{e.note}</p>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {e.emotionTag && (
-                          <span className="bg-[#2E2E2E] text-white px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">{e.emotionTag}</span>
-                        )}
-                        {e.trigger && (
-                          <span className="bg-[#E8E4DC] text-[#4A4A4A] px-2.5 py-0.5 rounded-full text-xs whitespace-nowrap">{e.trigger}</span>
-                        )}
-                        <span className="text-xs text-[#4A4A4A]">{formatTime(e.ts)}</span>
-                      </div>
+            <div className="flex flex-col gap-3">
+              {topTriggers.map(([trigger, count]) => {
+                const emotion = rangeFiltered.find((e) => e.trigger === trigger)?.emotionTag?.toLowerCase();
+                const barColor = EMOTION_COLORS[emotion] || "#264E70";
+                const pct = (count / maxTrigger) * 100;
+                return (
+                  <div key={trigger}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs" style={{ color: "#4A4A4A" }}>{trigger}</span>
+                      <span className="text-xs font-semibold" style={{ color: "#4A4A4A" }}>{count}</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="rounded-full overflow-hidden" style={{ height: "6px", backgroundColor: "#E1DED9" }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: barColor }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Patterns Detected */}
+      <div className="mb-4">
+        <p className="font-sans text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: "#2E2E2E" }}>
+          Patterns Detected
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          {patterns.length === 0 ? (
+            <div className="col-span-2 rounded-xl px-5 py-4 text-sm" style={{ backgroundColor: "#F3EFE9", color: "#4A4A4A" }}>
+              No patterns detected yet.
+            </div>
+          ) : (
+            patterns.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-xl px-5 py-4"
+                style={{
+                  backgroundColor: p.type === "pink" ? "#FAD7D3" : "#BBD4CE",
+                  borderLeft: `4px solid ${p.type === "pink" ? "#E69697" : "#679186"}`,
+                }}
+              >
+                <p className="text-sm font-bold mb-1" style={{ color: "#1D1D1D" }}>{p.title}</p>
+                <p className="text-xs leading-relaxed mb-3" style={{ color: "#4A4A4A" }}>{p.description}</p>
+                <button
+                  className="text-xs underline bg-transparent border-none cursor-pointer p-0"
+                  style={{ color: p.type === "pink" ? "#666160" : "#5C605F" }}
+                >
+                  View Linked Entries
+                </button>
               </div>
             ))
           )}
         </div>
-
-        <div className="flex flex-col gap-5">
-          <div className="bg-[#F2EFE9] rounded-xl p-5 shadow-sm">
-            <p className="font-mono text-[0.7rem] tracking-widest uppercase text-[#4A4A4A] mb-3">Top Triggers</p>
-            {topTriggers.length === 0 ? (
-              <p className="text-sm text-[#4A4A4A]">Not enough data yet.</p>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                {topTriggers.map((t, i) => (
-                  <div key={t} className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#4A4A4A] w-4">{i + 1}.</span>
-                    <span className="bg-[#4A4A4A] text-white px-2.5 py-0.5 rounded-full text-xs">{t}</span>
-                    <span className="text-xs text-[#4A4A4A]">({triggerCounts[t]})</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
-      <div className="bg-[#F2EFE9] rounded-xl p-5 shadow-sm">
-        <p className="font-mono text-[0.7rem] tracking-widest uppercase text-[#4A4A4A] mb-4">Entries By Tag</p>
-        <div className="flex items-end gap-1.5" style={{ height: "144px" }}>
-          {tagCounts.map(({ tag, short, count }) => (
-            <div key={tag} className="flex-1 flex flex-col items-center gap-1" style={{ height: "100%" }}>
-              <span className="text-[0.6rem] text-[#4A4A4A]">{count}</span>
-              <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
-                <div
-                  className="w-full rounded-t"
-                  style={{
-                    height: count > 0 ? `${Math.max((count / maxCount) * 100, 8)}%` : "4%",
-                    backgroundColor: count > 0 ? "#F9B4AB" : "#E0E0E0",
-                  }}
-                />
+      {/* Emotion Timeline */}
+      <div className="rounded-xl p-5 mb-4" style={{ backgroundColor: "#F3EFE9" }}>
+        <p className="font-sans text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: "#2E2E2E" }}>
+          Emotion Timeline
+        </p>
+        <p className="text-[0.68rem] mb-3" style={{ color: "#4A4A4A" }}>Entries Over Time</p>
+        <ResponsiveContainer width="100%" height={200}>
+          <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+            <XAxis
+              dataKey="x"
+              type="number"
+              domain={["auto", "auto"]}
+              tickFormatter={formatXAxis}
+              tick={{ fontSize: 9, fill: "#4A4A4A" }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              dataKey="y"
+              type="number"
+              domain={[0, 10]}
+              label={{ value: "Intensity", angle: -90, position: "insideLeft", fontSize: 9, fill: "#4A4A4A" }}
+              tick={{ fontSize: 9, fill: "#4A4A4A" }}
+              tickLine={false}
+              axisLine={false}
+            />
+            {Object.entries(scatterByEmotion).map(([emotion, data]) => (
+              <Scatter
+                key={emotion}
+                name={emotion}
+                data={data}
+                fill={EMOTION_COLORS[emotion] || "#4A5C5C"}
+              />
+            ))}
+            <Legend
+              iconType="circle"
+              iconSize={8}
+              wrapperStyle={{ fontSize: "9px", paddingTop: "12px" }}
+            />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Filter by Emotion */}
+      <div className="rounded-xl p-5" style={{ backgroundColor: "#F3EFE9" }}>
+        <p className="font-sans text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: "#2E2E2E" }}>
+          Filter by Emotion
+        </p>
+        <div className="flex items-center gap-2 flex-wrap mb-4">
+          {emotions.map((emotion) => {
+            const isActive = activeEmotion === emotion;
+            const color = EMOTION_COLORS[emotion.toLowerCase()] || "#4A5C5C";
+            return (
+              <button
+                key={emotion}
+                onClick={() => setActiveEmotion(isActive ? null : emotion)}
+                className="px-3 py-1 rounded-full text-xs border-none cursor-pointer transition-all capitalize"
+                style={{
+                  backgroundColor: isActive ? color : "#FFFCF7",
+                  color: isActive ? "#F2EFE9" : "#4A4A4A",
+                  border: isActive ? "none" : "1px solid #F2EFE9",
+                }}
+              >
+                {emotion}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-col">
+          {filteredForTable.slice(0, 10).map((e, i) => (
+            <div
+              key={e.id}
+              className="flex items-center justify-between py-2.5 px-1"
+              style={{ borderBottom: i < filteredForTable.length - 1 ? "1px solid rgba(0,0,0,0.06)" : "none" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-[0.68rem]" style={{ color: "#4A4A4A" }}>
+                  {new Date(e.ts).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+                <span className="text-sm" style={{ color: "#1D1D1D" }}>{e.habit}</span>
               </div>
-              <span className="text-[0.55rem] text-[#4A4A4A] text-center leading-tight" title={tag}>{short}</span>
+              {e.emotionTag && (
+                <span
+                  className="text-[0.68rem] px-2.5 py-0.5 rounded-full font-mono capitalize"
+                  style={{
+                    backgroundColor: EMOTION_COLORS[e.emotionTag.toLowerCase()] || "#4A5C5C",
+                    color: "#F2EFE9",
+                  }}
+                >
+                  {e.emotionTag}
+                </span>
+              )}
             </div>
           ))}
         </div>
