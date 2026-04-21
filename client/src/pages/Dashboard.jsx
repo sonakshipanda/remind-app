@@ -1,19 +1,7 @@
 import { formatDate, formatTime } from "../utils/formatDate";
 import { useState, useEffect } from "react";
 import api from "../utils/api";
-
-const EMOTION_COLORS = {
-  tired:       "#4C756B",
-  frustrated:  "#4A6478",
-  anxious:     "#264E70",
-  angry:       "#C56C6E",
-  sad:         "#6B5555",
-  overwhelmed: "#4A5C5C",
-  embarrassed: "#6B5D6B",
-  lonely:      "#5D6B5D",
-  insecure:    "#6B6B5D",
-  excited:     "#556B68",
-};
+import EMOTION_COLORS from "../utils/emotionColors";
 
 export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, onNudgeDismissed, refreshKey }) {
   const [entries, setEntries] = useState([]);
@@ -188,7 +176,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
 
       {/* Recent entries */}
       <div className="flex items-center justify-between mb-3">
-        <p className="font-mono text-[0.68rem] tracking-widest uppercase" style={{ color: "#2E2E2E" }}>
+        <p className="font-sans text-xs font-semibold tracking-widest uppercase" style={{ color: "#2E2E2E" }}>
           Recent Entries
         </p>
         {entries.length > 5 && (
@@ -238,7 +226,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
                     </p>
                     {e.note && (
                       <>
-                        <div className="my-2" style={{ borderTop: "1px solid #7B7A79" }} />
+                        <div className="my-2" style={{ borderTop: "1px solid rgba(0,0,0,0.08)" }} />
                         <p className="text-[0.78rem] italic leading-snug" style={{ color: "#4A4A4A" }}>
                           {e.note}
                         </p>

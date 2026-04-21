@@ -1,21 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { formatDate, formatTime } from "../utils/formatDate";
 import api from "../utils/api";
-
-const EMOTION_COLORS = {
-  tired:       "#4C756B",
-  frustrated:  "#4A6478",
-  anxious:     "#264E70",
-  angry:       "#C56C6E",
-  sad:         "#6B5555",
-  overwhelmed: "#4A5C5C",
-  embarrassed: "#6B5D6B",
-  lonely:      "#5D6B5D",
-  insecure:    "#6B6B5D",
-  excited:     "#556B68",
-};
+import EMOTION_COLORS from "../utils/emotionColors";
 
 const CATEGORIES = [
+  "All Entries",
   "Communication",
   "Work & Productivity",
   "Relationships",
@@ -100,14 +89,13 @@ function CustomDropdown({ value, options, onChange, placeholder }) {
 
 const COLLAPSED_LIMIT = 3;
 
-function DateGroup({ date, entries }) {
+function DateGroup({ date, entries, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const hidden = entries.length - COLLAPSED_LIMIT;
   const visible = expanded ? entries : entries.slice(0, COLLAPSED_LIMIT);
 
   return (
     <div className="mb-6 flex gap-4">
-      {/* Left timeline */}
       <div className="flex flex-col items-center" style={{ width: "12px", marginTop: "4px" }}>
         <div className="rounded-full shrink-0" style={{ width: "10px", height: "10px", backgroundColor: "#264E70" }} />
         <div className="flex-1 w-px mt-1" style={{ backgroundColor: "#264E70", opacity: 0.3 }} />
@@ -120,6 +108,9 @@ function DateGroup({ date, entries }) {
         <div className="flex flex-col">
           {visible.map((e, i) => {
             const emotionColor = EMOTION_COLORS[e.emotionTag?.toLowerCase()] || "#4A5C5C";
+            const isFirst = i === 0;
+            const isLast = i === visible.length - 1;
+            const hasExpander = entries.length > COLLAPSED_LIMIT;
             return (
               <div
                 key={e.id}
@@ -127,9 +118,9 @@ function DateGroup({ date, entries }) {
                 style={{
                   backgroundColor: "#F2EFE9",
                   borderBottom: i < visible.length - 1 ? "1px solid rgba(0,0,0,0.06)" : "none",
-                  borderRadius: i === 0 && visible.length === 1 ? "12px"
-                    : i === 0 ? "12px 12px 0 0"
-                    : i === visible.length - 1 && !(!expanded && hidden > 0) ? "0 0 12px 12px"
+                  borderRadius: isFirst && isLast ? "12px"
+                    : isFirst ? "12px 12px 0 0"
+                    : isLast && !hasExpander ? "0 0 12px 12px"
                     : "0",
                 }}
               >
@@ -166,16 +157,25 @@ function DateGroup({ date, entries }) {
                         </span>
                       )}
                     </div>
-                    <span className="text-[0.72rem] mt-0.5" style={{ color: "#4A4A4A" }}>
-                      {formatTime(e.ts)}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="text-[0.72rem]" style={{ color: "#4A4A4A" }}>
+                        {formatTime(e.ts)}
+                      </span>
+                      <button
+                        onClick={() => onDelete(e.id)}
+                        className="text-sm bg-transparent border-none cursor-pointer transition-opacity hover:opacity-60 p-0"
+                        style={{ color: "#4A4A4A" }}
+                        title="Delete entry"
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
 
-          {/* Expand / collapse row */}
           {entries.length > COLLAPSED_LIMIT && (
             <button
               onClick={() => setExpanded((e) => !e)}
@@ -201,7 +201,7 @@ export default function AllEntries({ onLog }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState("All Entries");
   const [sort, setSort] = useState("newest first");
 
   useEffect(() => {
@@ -227,9 +227,17 @@ export default function AllEntries({ onLog }) {
     fetchEntries();
   }, []);
 
+  async function handleDelete(id) {
+    try {
+      await api.delete(`/entries/${id}`);
+      setEntries((prev) => prev.filter((e) => e.id !== id));
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  }
+
   if (loading) return <div className="text-sm py-6 px-8" style={{ color: "#4A4A4A" }}>Loading...</div>;
 
-  // Filter & search
   let filtered = entries;
   if (search.trim()) {
     const q = search.toLowerCase();
@@ -237,13 +245,12 @@ export default function AllEntries({ onLog }) {
       (e) => e.habit.toLowerCase().includes(q) || e.note.toLowerCase().includes(q)
     );
   }
-  if (filter) {
+  if (filter && filter.toLowerCase() !== "all entries") {
     filtered = filtered.filter(
       (e) => e.category?.toLowerCase() === filter.toLowerCase()
     );
   }
 
-  // Sort
   let sorted = [...filtered];
   if (sort === "newest first") {
     sorted.sort((a, b) => new Date(b.ts) - new Date(a.ts));
@@ -262,7 +269,6 @@ export default function AllEntries({ onLog }) {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold" style={{ color: "#1D1D1D" }}>All Entries</h1>
         <div className="flex items-center gap-2">
-          {/* Search */}
           <input
             type="text"
             placeholder="search entries..."
@@ -272,14 +278,12 @@ export default function AllEntries({ onLog }) {
             className="px-3 py-2 rounded-lg text-xs outline-none border-none"
             style={{ backgroundColor: "#FFFCF7", color: "#4A4A4A", width: "160px" }}
           />
-          {/* Filter */}
           <CustomDropdown
             value={filter}
-            options={CATEGORIES.map((c) => c.toLowerCase().replace(/ & /g, " & "))}
-            onChange={(val) => setFilter(val === filter ? "" : val)}
+            options={CATEGORIES.map((c) => c.toLowerCase())}
+            onChange={(val) => setFilter(val)}
             placeholder="filter"
           />
-          {/* Sort */}
           <CustomDropdown
             value={`sort: ${sort}`}
             options={SORT_OPTIONS.map((o) => `sort: ${o}`)}
@@ -291,10 +295,7 @@ export default function AllEntries({ onLog }) {
 
       {/* Entries */}
       {sorted.length === 0 ? (
-        <div
-          className="rounded-xl px-5 py-8 text-center"
-          style={{ backgroundColor: "#F2EFE9" }}
-        >
+        <div className="rounded-xl px-5 py-8 text-center" style={{ backgroundColor: "#F2EFE9" }}>
           <p className="text-sm mb-1" style={{ color: "#4A4A4A" }}>No entries found.</p>
           <button
             onClick={onLog}
@@ -305,7 +306,6 @@ export default function AllEntries({ onLog }) {
           </button>
         </div>
       ) : isEmotionSort ? (
-        // Emotion grouping
         Object.entries(groupByEmotion(sorted)).map(([emotion, group]) => (
           <div key={emotion} className="mb-6 flex gap-4">
             <div className="flex flex-col items-center" style={{ width: "12px", marginTop: "4px" }}>
@@ -349,23 +349,38 @@ export default function AllEntries({ onLog }) {
                             </>
                           )}
                         </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          {e.emotionTag && (
-                            <span
-                              className="text-[0.68rem] px-2.5 py-0.5 rounded-full font-mono"
-                              style={{ backgroundColor: emotionColor, color: "#F2EFE9" }}
-                            >
-                              {e.emotionTag}
+                        <div className="flex items-start gap-3 shrink-0">
+                          <div className="flex flex-col items-end gap-1">
+                            {e.emotionTag && (
+                              <span
+                                className="text-[0.68rem] px-2.5 py-0.5 rounded-full font-mono"
+                                style={{ backgroundColor: emotionColor, color: "#F2EFE9" }}
+                              >
+                                {e.emotionTag}
+                              </span>
+                            )}
+                            {e.trigger && (
+                              <span
+                                className="text-[0.68rem] px-2.5 py-0.5 rounded-full font-mono"
+                                style={{ backgroundColor: "#E1DED9", color: "#4A4A4A" }}
+                              >
+                                {e.trigger}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-[0.72rem]" style={{ color: "#4A4A4A" }}>
+                              {formatTime(e.ts)}
                             </span>
-                          )}
-                          {e.trigger && (
-                            <span
-                              className="text-[0.68rem] px-2.5 py-0.5 rounded-full font-mono"
-                              style={{ backgroundColor: "#E1DED9", color: "#4A4A4A" }}
+                            <button
+                              onClick={() => handleDelete(e.id)}
+                              className="text-sm bg-transparent border-none cursor-pointer transition-opacity hover:opacity-60 p-0"
+                              style={{ color: "#4A4A4A" }}
+                              title="Delete entry"
                             >
-                              {e.trigger}
-                            </span>
-                          )}
+                              🗑
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -376,9 +391,8 @@ export default function AllEntries({ onLog }) {
           </div>
         ))
       ) : (
-        // Date grouping
         Object.entries(groupByDate(sorted)).map(([date, group]) => (
-          <DateGroup key={date} date={date} entries={group} />
+          <DateGroup key={date} date={date} entries={group} onDelete={handleDelete} />
         ))
       )}
     </div>

@@ -28,9 +28,21 @@ export default function Sidebar({ page, setPage, onLogout }) {
               key={l.id}
               onClick={() => setPage(l.id)}
               className="text-left px-5 py-2.5 text-xs tracking-wide font-sans border-none cursor-pointer transition-all bg-transparent"
-              style={{ color: "#BBD4CE", opacity: isActive ? 1 : 0.55 }}
+              style={{
+                color: "#BBD4CE",
+                opacity: isActive ? 1 : 0.55,
+                borderLeft: isActive
+                  ? "3px solid #BBD4CE"
+                  : "3px solid transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) e.currentTarget.style.opacity = "0.8";
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) e.currentTarget.style.opacity = "0.55";
+              }}
             >
-              {isActive ? `| ${l.label}` : l.label}
+              {l.label}
             </button>
           );
         })}
@@ -39,9 +51,9 @@ export default function Sidebar({ page, setPage, onLogout }) {
       <div className="mt-auto px-5 pb-2">
         <button
           onClick={onLogout}
-          className="text-xs tracking-wide font-sans border-none cursor-pointer bg-transparent transition-all active:opacity-80 group"
+          className="text-xs tracking-wide font-sans border-none cursor-pointer bg-transparent transition-all"
           style={{ color: "#BBD4CE" }}
-          onMouseEnter={(e) => e.currentTarget.style.color = "#BBD4CE"}
+          onMouseEnter={(e) => e.currentTarget.style.color = "#D5EAE5"}
           onMouseLeave={(e) => e.currentTarget.style.color = "#BBD4CE"}
           onMouseDown={(e) => e.currentTarget.style.color = "#D5EAE5"}
           onMouseUp={(e) => e.currentTarget.style.color = "#BBD4CE"}
