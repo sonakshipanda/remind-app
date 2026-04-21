@@ -7,9 +7,12 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
   const [entries, setEntries] = useState([]);
   const [activeNudges, setActiveNudges] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [nudgeBannerDismissed, setNudgeBannerDismissed] = useState(false);
+
+  // Banner and toast track their own nudge ID independently
+  const [bannerNudgeId, setBannerNudgeId] = useState(null);
+  const [toastNudgeId, setToastNudgeId] = useState(null);
   const [toastVisible, setToastVisible] = useState(false);
-  const [toastDismissed, setToastDismissed] = useState(false);
+  const [toastFading, setToastFading] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -27,7 +30,14 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
           ts: e.createdAt,
         }));
         setEntries(mapped);
-        setActiveNudges(nudgesRes.data.filter((n) => n.status === "active"));
+
+        const active = nudgesRes.data.filter((n) => n.status === "active");
+        setActiveNudges(active);
+
+        // Set banner to first active nudge on load
+        if (active.length > 0) {
+          setBannerNudgeId(active[0]._id);
+        }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -37,42 +47,56 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
     fetchData();
   }, [refreshKey]);
 
+  // When a new nudge comes in from logging an entry, add it and show toast
   useEffect(() => {
     if (pendingNudge) {
-      setActiveNudges((prev) => [
-        { _id: "pending", message: pendingNudge.message, status: "active" },
-        ...prev,
-      ]);
+      const newNudge = { _id: "pending", message: pendingNudge.message, status: "active" };
+      setActiveNudges((prev) => [newNudge, ...prev]);
+      setToastNudgeId("pending");
       setToastVisible(true);
-      setToastDismissed(false);
+      setToastFading(false);
     }
   }, [pendingNudge]);
 
-  async function dismissBannerNudge(nudgeId) {
+  async function dismissBannerNudge() {
+    if (!bannerNudgeId) return;
     try {
-      if (nudgeId !== "pending") {
-        await api.put(`/nudges/${nudgeId}`, { status: "dismissed" });
+      if (bannerNudgeId !== "pending") {
+        await api.put(`/nudges/${bannerNudgeId}`, { status: "dismissed" });
       }
-      setActiveNudges((prev) => prev.filter((n) => n._id !== nudgeId));
-      setNudgeBannerDismissed(true);
+      setActiveNudges((prev) => prev.filter((n) => n._id !== bannerNudgeId));
+      setBannerNudgeId(null);
       if (onNudgeDismissed) onNudgeDismissed();
     } catch (err) {
-      console.error("Dismiss nudge error:", err);
+      console.error("Dismiss banner nudge error:", err);
     }
   }
 
   function dismissToast() {
-    setToastDismissed(true);
-    setTimeout(() => setToastVisible(false), 300);
+    setToastFading(true);
+    setTimeout(() => {
+      setToastVisible(false);
+      setToastFading(false);
+      setToastNudgeId(null);
+    }, 300);
   }
 
+  // Derive nudge objects from IDs — fully independent
+  const bannerNudge = bannerNudgeId
+    ? activeNudges.find((n) => n._id === bannerNudgeId) || null
+    : null;
+
+  const toastNudge = toastVisible && toastNudgeId
+    ? activeNudges.find((n) => n._id === toastNudgeId) || null
+    : null;
+
+  // Week stats
   const now = new Date();
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
 
-  const thisWeekEntries = entries.filter((e) => new Date(e.ts) >= startOfWeek);
-  const entriesThisWeek = thisWeekEntries.length;
+  const entriesThisWeek = entries.filter((e) => new Date(e.ts) >= startOfWeek).length;
 
   const emotionCounts = {};
   entries.forEach((e) => {
@@ -87,9 +111,6 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
   const topTrigger = Object.entries(triggerCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
   const recentEntries = entries.slice(0, 5);
-  const bannerNudge = !nudgeBannerDismissed && activeNudges.length > 0 ? activeNudges[0] : null;
-  const toastNudge = toastVisible && !toastDismissed && activeNudges.length > 0 ? activeNudges[0] : null;
-
   const firstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
 
   if (loading) return <div className="text-sm py-6" style={{ color: "#4A4A4A" }}>Loading...</div>;
@@ -97,7 +118,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
   return (
     <div className="min-h-screen px-8 py-8" style={{ backgroundColor: "#FFFCF7" }}>
 
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold" style={{ color: "#1D1D1D" }}>
           Hello, {firstName}!
@@ -132,11 +153,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
             { label: "Top Emotion", value: topEmotion.charAt(0).toUpperCase() + topEmotion.slice(1) },
             { label: "Top Trigger", value: topTrigger },
           ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="rounded-xl px-4 py-3"
-              style={{ backgroundColor: "#F2EFE9" }}
-            >
+            <div key={label} className="rounded-xl px-4 py-3" style={{ backgroundColor: "#F2EFE9" }}>
               <p className="text-[0.68rem] font-sans tracking-wide mb-1" style={{ color: "#656463" }}>
                 {label}
               </p>
@@ -148,7 +165,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
         </div>
       </div>
 
-      {/* Active nudge banner */}
+      {/* Active nudge banner — independent of toast */}
       {bannerNudge && (
         <div
           className="flex items-center gap-3 rounded-xl px-4 py-2.5 mb-5 text-sm"
@@ -165,7 +182,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
             view details
           </button>
           <button
-            onClick={() => dismissBannerNudge(bannerNudge._id)}
+            onClick={dismissBannerNudge}
             className="px-3 py-1 rounded-md text-xs border-none cursor-pointer transition-opacity hover:opacity-75 shrink-0"
             style={{ backgroundColor: "#FAD7D3", color: "#4A4A4A", border: "1px solid #F9B4AB" }}
           >
@@ -191,10 +208,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
       </div>
 
       {recentEntries.length === 0 ? (
-        <div
-          className="rounded-xl px-5 py-8 text-center"
-          style={{ backgroundColor: "#F2EFE9" }}
-        >
+        <div className="rounded-xl px-5 py-8 text-center" style={{ backgroundColor: "#F2EFE9" }}>
           <p className="text-sm mb-1" style={{ color: "#4A4A4A" }}>No data to be shown.</p>
           <button
             onClick={onLog}
@@ -209,11 +223,7 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
           {recentEntries.map((e) => {
             const emotionColor = EMOTION_COLORS[e.emotionTag?.toLowerCase()] || "#4A5C5C";
             return (
-              <div
-                key={e.id}
-                className="rounded-xl px-5 py-4"
-                style={{ backgroundColor: "#F2EFE9" }}
-              >
+              <div key={e.id} className="rounded-xl px-5 py-4" style={{ backgroundColor: "#F2EFE9" }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -258,11 +268,11 @@ export default function Dashboard({ streak, onLog, setPage, user, pendingNudge, 
         </div>
       )}
 
-      {/* Toast nudge overlay */}
+      {/* Toast nudge — independent of banner */}
       {toastNudge && (
         <div
           className="fixed bottom-7 right-7 z-50 rounded-2xl p-5 shadow-xl w-72 transition-opacity"
-          style={{ backgroundColor: "#FFFCF7", opacity: toastDismissed ? 0 : 1 }}
+          style={{ backgroundColor: "#FFFCF7", opacity: toastFading ? 0 : 1 }}
         >
           <button
             onClick={dismissToast}

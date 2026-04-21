@@ -1,24 +1,75 @@
 import { useState, useEffect } from "react";
 import api from "../utils/api";
+import EMOTION_COLORS from "../utils/emotionColors";
 import {
   PieChart, Pie, Cell, Tooltip,
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend,
 } from "recharts";
 
-const EMOTION_COLORS = {
-  tired:       "#4C756B",
-  frustrated:  "#4A6478",
-  anxious:     "#264E70",
-  angry:       "#C56C6E",
-  sad:         "#6B5555",
-  overwhelmed: "#4A5C5C",
-  embarrassed: "#6B5D6B",
-  lonely:      "#5D6B5D",
-  insecure:    "#6B6B5D",
-  excited:     "#556B68",
-};
 
 const RANGE_OPTIONS = ["week", "month", "all time"];
+
+function LinkedEntriesModal({ entries, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+      <div className="rounded-2xl p-8 w-full max-w-2xl shadow-xl relative" style={{ backgroundColor: "#FFFCF7" }}>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-lg bg-transparent border-none cursor-pointer hover:opacity-60"
+          style={{ color: "#4A4A4A" }}
+        >
+          ×
+        </button>
+        <h2 className="text-xl font-bold mb-5" style={{ color: "#1D1D1D" }}>Similar Entries</h2>
+        <div className="flex flex-col gap-3">
+          {entries.map((e, i) => {
+            const emotionColor = EMOTION_COLORS[e.emotionalState?.toLowerCase()] || "#4A5C5C";
+            return (
+              <div key={e._id || i} className="rounded-xl px-5 py-4" style={{ backgroundColor: "#F2EFE9" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[0.72rem] mb-1" style={{ color: "#4A4A4A" }}>
+                      {new Date(e.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric" })}
+                    </p>
+                    <p className="text-sm font-medium leading-snug" style={{ color: "#1D1D1D" }}>
+                      {e.description}
+                    </p>
+                    {e.desiredAction && (
+                      <>
+                        <div className="my-1.5" style={{ borderTop: "1px solid rgba(0,0,0,0.08)" }} />
+                        <p className="text-[0.78rem] italic leading-snug" style={{ color: "#4A4A4A" }}>
+                          {e.desiredAction}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {e.emotionalState && (
+                      <span
+                        className="text-[0.68rem] px-2.5 py-0.5 rounded-full font-mono"
+                        style={{ backgroundColor: emotionColor, color: "#F2EFE9" }}
+                      >
+                        {e.emotionalState}
+                      </span>
+                    )}
+                    {e.trigger && (
+                      <span
+                        className="text-[0.68rem] px-2.5 py-0.5 rounded-full font-mono"
+                        style={{ backgroundColor: "#E1DED9", color: "#4A4A4A" }}
+                      >
+                        {e.trigger}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Insights({ onLog }) {
   const [entries, setEntries] = useState([]);
@@ -26,6 +77,7 @@ export default function Insights({ onLog }) {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState("all time");
   const [activeEmotion, setActiveEmotion] = useState(null);
+  const [linkedEntriesModal, setLinkedEntriesModal] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -266,6 +318,7 @@ export default function Insights({ onLog }) {
                 <p className="text-sm font-bold mb-1" style={{ color: "#1D1D1D" }}>{p.title}</p>
                 <p className="text-xs leading-relaxed mb-3" style={{ color: "#4A4A4A" }}>{p.description}</p>
                 <button
+                  onClick={() => setLinkedEntriesModal(p.linkedEntries || [])}
                   className="text-xs underline bg-transparent border-none cursor-pointer p-0"
                   style={{ color: p.type === "pink" ? "#666160" : "#5C605F" }}
                 >
@@ -374,6 +427,12 @@ export default function Insights({ onLog }) {
           ))}
         </div>
       </div>
+      {linkedEntriesModal && (
+            <LinkedEntriesModal
+              entries={linkedEntriesModal}
+              onClose={() => setLinkedEntriesModal(null)}
+            />
+          )}
     </div>
   );
 }

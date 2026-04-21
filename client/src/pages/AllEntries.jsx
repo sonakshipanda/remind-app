@@ -228,6 +228,8 @@ export default function AllEntries({ onLog }) {
   }, []);
 
   async function handleDelete(id) {
+    const confirmed = window.confirm("Are you sure you want to delete this entry?");
+    if (!confirmed) return;
     try {
       await api.delete(`/entries/${id}`);
       setEntries((prev) => prev.filter((e) => e.id !== id));
