@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const entryRoutes = require('./routes/entryRoutes');
 const nudgeRoutes = require('./routes/nudgeRoutes');
 const analyzeRoutes = require('./routes/analyzeRoutes');
+const passwordResetRoutes = require('./routes/passwordResetRoutes');
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ mongoose.connect(process.env.MONGO_URI)
   });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', passwordResetRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/nudges', nudgeRoutes);
 app.use('/api/analyze', analyzeRoutes);
